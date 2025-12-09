@@ -1,92 +1,81 @@
-package com.medibook.medibook_backend.entity;
+package com.medibook.medibook_backend.dto;
 
-import jakarta.persistence.*;
-import org.springframework.data.domain.Persistable;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "doctor")
-public class Doctor implements Persistable<Long> {
+public class CompleteDoctorProfileRequest {
 
-    @Id
-    private Long id; // Same as user.id (one-to-one FK)
+    @NotNull(message = "User ID is required")
+    private Long userId;
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "id")
-    private User user;
+    @NotBlank(message = "Password is required")
+    private String password;
 
-    // Personal Information
-    @Column(name = "date_of_birth")
+    @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
+    @NotBlank(message = "Gender is required")
     private String gender;
 
-    @Column(name = "profile_photo_path")
-    private String profilePhotoPath;
+    private String profilePhotoPath; // Set after file upload
 
-    // Professional Information
-    @Column(name = "medical_registration_number", unique = true)
+    @NotBlank(message = "Medical registration number is required")
     private String medicalRegistrationNumber;
 
-    @Column(name = "licensing_authority")
+    @NotBlank(message = "Licensing authority is required")
     private String licensingAuthority;
 
+    @NotBlank(message = "Specialization is required")
     private String specialization;
 
+    @NotBlank(message = "Qualification is required")
     private String qualification;
 
-    private Integer experience; // years of experience
+    @NotNull(message = "Experience is required")
+    private Integer experience;
 
-    // Contact Information
+    @NotBlank(message = "Phone number is required")
     private String phone;
 
-    // Clinic/Practice Information
-    @Column(name = "clinic_hospital_name")
+    @NotBlank(message = "Clinic/Hospital name is required")
     private String clinicHospitalName;
 
+    @NotBlank(message = "City is required")
     private String city;
 
+    @NotBlank(message = "State is required")
     private String state;
 
+    @NotBlank(message = "Country is required")
     private String country;
 
+    @NotBlank(message = "Pincode is required")
     private String pincode;
 
-    // Document Uploads
-    @Column(name = "medical_license_path")
-    private String medicalLicensePath; // Medical license document
+    private String medicalLicensePath; // Set after file upload
 
-    @Column(name = "degree_certificates_path")
-    private String degreeCertificatesPath; // Degree certificates
+    private String degreeCertificatesPath; // Set after file upload
 
     // Constructors
-    public Doctor() {
-    }
-
-    public Doctor(User user) {
-        this.user = user;
-        this.id = user.getId();
+    public CompleteDoctorProfileRequest() {
     }
 
     // Getters and Setters
-    public Long getId() {
-        return id;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public User getUser() {
-        return user;
+    public String getPassword() {
+        return password;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-        if (user != null) {
-            this.id = user.getId();
-        }
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public LocalDate getDateOfBirth() {
@@ -215,20 +204,5 @@ public class Doctor implements Persistable<Long> {
 
     public void setDegreeCertificatesPath(String degreeCertificatesPath) {
         this.degreeCertificatesPath = degreeCertificatesPath;
-    }
-
-    @Transient
-    private boolean isNew = true;
-
-    // Persistable interface methods
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @PostLoad
-    @PostPersist
-    void markNotNew() {
-        this.isNew = false;
     }
 }

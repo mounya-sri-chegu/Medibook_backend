@@ -1,45 +1,93 @@
 package com.medibook.medibook_backend.controller;
 
-import com.medibook.medibook_backend.dto.ChangePasswordRequest;
-import com.medibook.medibook_backend.service.DoctorService;
-import com.medibook.medibook_backend.service.PatientService;
+import com.medibook.medibook_backend.dto.*;
+import com.medibook.medibook_backend.service.AuthService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
-    private final PatientService patientService;
-    private final DoctorService doctorService;
+    private final AuthService authService;
 
-    public AuthController(PatientService patientService, DoctorService doctorService) {
-        this.patientService = patientService;
-        this.doctorService = doctorService;
+    public AuthController(AuthService authService) {
+        this.authService = authService;
     }
 
-    @PostMapping("/change-password-first-login")
-    public ResponseEntity<?> changePasswordFirstLogin(@RequestBody ChangePasswordRequest request) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
-        String role = auth.getAuthorities().stream().findFirst().orElseThrow().getAuthority();
-
+    /**
+     * POST /auth/generate-otp
+     * Generate OTP for registration (ADMIN, PATIENT, DOCTOR)
+     */
+    @PostMapping("/generate-otp")
+    public ResponseEntity<Map<String, Object>> generateOtp(@Valid @RequestBody GenerateOtpRequest request) {
         try {
-            if ("ROLE_PATIENT".equals(role)) {
-                patientService.changePasswordFirstLogin(email, request.getCurrentPassword(), request.getNewPassword(),
-                        request.getConfirmPassword());
-            } else if ("ROLE_DOCTOR".equals(role)) {
-                doctorService.changePasswordFirstLogin(email, request.getCurrentPassword(), request.getNewPassword(),
-                        request.getConfirmPassword());
-            } else {
-                return ResponseEntity.status(403).body(java.util.Map.of("error", "Invalid role for this operation."));
-            }
-            return ResponseEntity.ok(java.util.Map.of("message", "Password updated successfully."));
+            Map<String, Object> response = authService.generateOtp(request);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            if (e.getMessage().contains("Email already in use")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("success", false, "message", e.getMessage()));
+            }
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /auth/register-admin
+     * Register new Admin (Directly)
+     */
+    @PostMapping("/register-admin")
+    public ResponseEntity<Map<String, Object>> registerAdmin(@Valid @RequestBody AdminRegisterRequest request) {
+        try {
+            Map<String, Object> response = authService.registerAdmin(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Email already in use")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("success", false, "message", e.getMessage()));
+            }
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /auth/verify-otp
+     * Verify OTP
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        try {
+            Map<String, Object> response = authService.verifyOtp(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /auth/login
+     * Login for all roles
+     */
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            Map<String, Object> response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("not verified")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("success", false, "message", e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("success", false, "message", e.getMessage()));
         }
     }
 }

@@ -1,130 +1,125 @@
 package com.medibook.medibook_backend.controller;
 
-import com.medibook.medibook_backend.dto.LoginRequest;
-import com.medibook.medibook_backend.entity.Doctor;
-import com.medibook.medibook_backend.security.JwtService;
-import com.medibook.medibook_backend.service.DoctorService;
+import com.medibook.medibook_backend.dto.CompleteDoctorProfileRequest;
+import com.medibook.medibook_backend.service.AuthService;
+import com.medibook.medibook_backend.service.FileStorageService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/doctor")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/profile/doctor")
 public class DoctorController {
 
-    private final DoctorService doctorService;
-    private final JwtService jwtService;
+    private final AuthService authService;
+    private final FileStorageService fileStorageService;
 
-    public DoctorController(DoctorService doctorService, JwtService jwtService) {
-        this.doctorService = doctorService;
-        this.jwtService = jwtService;
+    public DoctorController(AuthService authService, FileStorageService fileStorageService) {
+        this.authService = authService;
+        this.fileStorageService = fileStorageService;
     }
 
-    @PostMapping(value = "/register", consumes = "multipart/form-data")
-    public ResponseEntity<?> registerDoctor(@RequestParam String fullName,
-            @RequestParam String gender,
-            @RequestParam Integer yearsOfExperience,
-            @RequestParam String specialization,
-            @RequestParam String contactPhone,
-            @RequestParam String email,
-            @RequestPart("licenseFile") MultipartFile licenseFile) {
+    /**
+     * PUT /profile/doctor
+     * Complete doctor profile after OTP verification with certificate uploads
+     */
+    @PutMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> completeProfile(
+            @RequestParam("userId") Long userId,
+            @RequestParam("password") String password,
+            @RequestParam("dateOfBirth") String dateOfBirth,
+            @RequestParam("gender") String gender,
+            @RequestParam("medicalRegistrationNumber") String medicalRegistrationNumber,
+            @RequestParam("licensingAuthority") String licensingAuthority,
+            @RequestParam("specialization") String specialization,
+            @RequestParam("qualification") String qualification,
+            @RequestParam("experience") Integer experience,
+            @RequestParam("phone") String phone,
+            @RequestParam("clinicHospitalName") String clinicHospitalName,
+            @RequestParam("city") String city,
+            @RequestParam("state") String state,
+            @RequestParam("country") String country,
+            @RequestParam("pincode") String pincode,
+            @RequestPart(value = "profilePhoto", required = false) MultipartFile profilePhoto,
+            @RequestPart("medicalLicense") MultipartFile medicalLicense,
+            @RequestPart("degreeCertificates") MultipartFile degreeCertificates) {
         try {
-            Doctor doctor = new Doctor();
-            doctor.setFullName(fullName);
-            doctor.setGender(gender);
-            doctor.setYearsOfExperience(yearsOfExperience);
-            doctor.setSpecialization(specialization);
-            doctor.setContactPhone(contactPhone);
-            doctor.setEmail(email);
-
-            // Password is NOT set here; it is handled in Service with a random hash
-            Doctor saved = doctorService.registerDoctorWithFile(doctor, licenseFile);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Doctor registered. Wait for admin approval.",
-                    "id", saved.getId()));
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("error", "File upload failed: " + e.getMessage()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error while registering doctor: " + e.getMessage()));
-        }
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> loginDoctor(@RequestBody LoginRequest request) {
-        try {
-            Doctor doctor = doctorService.login(request.getEmail(), request.getPassword());
-
-            if (doctor.isMustChangePassword()) {
-                return ResponseEntity.ok(
-                        Map.of(
-                                "status", "FIRST_LOGIN_PASSWORD_RESET_REQUIRED",
-                                "message", "You must change your password.",
-                                "mustChangePassword", true,
-                                "token", jwtService.generateToken(doctor.getEmail(), "DOCTOR"),
-                                "role", "DOCTOR",
-                                "doctorId", doctor.getId()));
+            // Validate required files
+            if (medicalLicense == null || medicalLicense.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Medical license is required."));
             }
 
-            String token = jwtService.generateToken(doctor.getEmail(), "DOCTOR");
-            return ResponseEntity.ok(
-                    Map.of("message", "Login successful",
-                            "token", token,
-                            "role", "DOCTOR",
-                            "doctorId", doctor.getId(),
-                            "status", doctor.getStatus(),
-                            "mustChangePassword", false));
+            if (degreeCertificates == null || degreeCertificates.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Degree certificates are required."));
+            }
+
+            // Validate file formats
+            String licenseContentType = medicalLicense.getContentType();
+            String degreeContentType = degreeCertificates.getContentType();
+
+            if (licenseContentType == null
+                    || (!licenseContentType.equals("application/pdf") && !licenseContentType.startsWith("image/"))) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message",
+                                "Invalid medical license format. Please upload PDF/JPEG."));
+            }
+
+            if (degreeContentType == null
+                    || (!degreeContentType.equals("application/pdf") && !degreeContentType.startsWith("image/"))) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message",
+                                "Invalid degree certificate format. Please upload PDF/JPEG."));
+            }
+
+            // Save files
+            String medicalLicensePath;
+            String degreeCertificatesPath;
+            String profilePhotoPath = null;
+
+            try {
+                medicalLicensePath = fileStorageService.saveDoctorCertificate(medicalLicense);
+                degreeCertificatesPath = fileStorageService.saveDoctorCertificate(degreeCertificates);
+
+                if (profilePhoto != null && !profilePhoto.isEmpty()) {
+                    profilePhotoPath = fileStorageService.saveDoctorCertificate(profilePhoto);
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("success", false, "message", "Unable to save files. Try again later."));
+            }
+
+            // Build request object
+            CompleteDoctorProfileRequest request = new CompleteDoctorProfileRequest();
+            request.setUserId(userId);
+            request.setPassword(password);
+            request.setDateOfBirth(LocalDate.parse(dateOfBirth));
+            request.setGender(gender);
+            request.setProfilePhotoPath(profilePhotoPath);
+            request.setMedicalRegistrationNumber(medicalRegistrationNumber);
+            request.setLicensingAuthority(licensingAuthority);
+            request.setSpecialization(specialization);
+            request.setQualification(qualification);
+            request.setExperience(experience);
+            request.setPhone(phone);
+            request.setClinicHospitalName(clinicHospitalName);
+            request.setCity(city);
+            request.setState(state);
+            request.setCountry(country);
+            request.setPincode(pincode);
+            request.setMedicalLicensePath(medicalLicensePath);
+            request.setDegreeCertificatesPath(degreeCertificatesPath);
+
+            Map<String, Object> response = authService.completeDoctorProfile(request);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
         }
     }
-
-    @GetMapping("/pending")
-    public ResponseEntity<List<Doctor>> getPendingDoctors() {
-        return ResponseEntity.ok(doctorService.getPendingDoctors());
-    }
-
-    @GetMapping("/approved")
-    public ResponseEntity<List<Doctor>> getApprovedDoctors() {
-        return ResponseEntity.ok(doctorService.getApprovedDoctors());
-    }
-
-    @GetMapping("/rejected")
-    public ResponseEntity<List<Doctor>> getRejectedDoctors() {
-        return ResponseEntity.ok(doctorService.getRejectedDoctors());
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<List<Doctor>> getAllDoctors() {
-        return ResponseEntity.ok(doctorService.getAllDoctors());
-    }
-
-    @PutMapping("/{id}/approve")
-    public ResponseEntity<?> approveDoctor(@PathVariable Long id) {
-        try {
-            doctorService.approveDoctor(id);
-            return ResponseEntity.ok(Map.of("message", "Doctor approved with id = " + id));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/{id}/reject")
-    public ResponseEntity<?> rejectDoctor(@PathVariable Long id) {
-        try {
-            doctorService.rejectDoctor(id);
-            return ResponseEntity.ok(Map.of("message", "Doctor rejected with id = " + id));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
 }

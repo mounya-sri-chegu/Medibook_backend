@@ -1,135 +1,126 @@
 package com.medibook.medibook_backend.controller;
 
-import com.medibook.medibook_backend.dto.AdminLoginRequest;
-import com.medibook.medibook_backend.entity.AdminOtp;
-import com.medibook.medibook_backend.repository.AdminOtpRepository;
-import com.medibook.medibook_backend.security.JwtService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Value;
+import com.medibook.medibook_backend.dto.CompleteAdminProfileRequest;
+import com.medibook.medibook_backend.service.AdminService;
+import com.medibook.medibook_backend.service.AuthService;
+import com.medibook.medibook_backend.service.FileStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 @RestController
-@RequestMapping("admin")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/admin")
 public class AdminController {
 
-    private final JavaMailSender mailSender;
-    private final AdminOtpRepository adminOtpRepository;
-    private final JwtService jwtService;
+    private final AuthService authService;
+    private final AdminService adminService;
+    private final FileStorageService fileStorageService;
 
-    @Value("${medibook.admin.email}")
-    private String adminEmail;
-
-    @Value("${medibook.admin.password}")
-    private String adminPassword;
-
-    public AdminController(JavaMailSender mailSender,
-            AdminOtpRepository adminOtpRepository,
-            JwtService jwtService) {
-        this.mailSender = mailSender;
-        this.adminOtpRepository = adminOtpRepository;
-        this.jwtService = jwtService;
+    public AdminController(AuthService authService, AdminService adminService, FileStorageService fileStorageService) {
+        this.authService = authService;
+        this.adminService = adminService;
+        this.fileStorageService = fileStorageService;
     }
-
-    // ===================== STEP 1: EMAIL + PASSWORD =====================
 
     /**
-     * Called from FIRST screen:
-     * Admin Email + Password + [Continue]
-     *
-     * POST /api/admin/login
-     * Body: { "email": "...", "password": "..." }
+     * PUT /admin/profile
+     * Complete admin profile with certificate upload
      */
-    @PostMapping("/login")
-    public ResponseEntity<?> startAdminLogin(@RequestBody AdminLoginRequest request) {
+    @PutMapping(value = "/profile", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> completeProfile(
+            @RequestParam("userId") Long userId,
+            @RequestParam("password") String password,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "designation", required = false) String designation,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestPart("certificate") MultipartFile certificateFile) {
+        try {
+            CompleteAdminProfileRequest request = new CompleteAdminProfileRequest();
+            request.setUserId(userId);
+            request.setPassword(password);
+            request.setPhone(phone);
+            request.setDesignation(designation);
+            request.setDepartment(department);
 
-        // 1) Validate credentials (simple: from application.properties)
-        if (!adminEmail.equalsIgnoreCase(request.getEmail())
-                || !adminPassword.equals(request.getPassword())) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid admin email or password"));
+            // Handle file upload
+            if (certificateFile == null || certificateFile.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Certificate is required for admin verification."));
+            }
+
+            // Validate format
+            String contentType = certificateFile.getContentType();
+            if (contentType == null || (!contentType.equals("application/pdf") && !contentType.startsWith("image/"))) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message",
+                                "Invalid certificate format. Please upload PDF/JPEG."));
+            }
+
+            String savedUrl;
+            try {
+                savedUrl = fileStorageService.saveAdminCertificate(certificateFile);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("success", false, "message", "Unable to save certificate. Try again later."));
+            }
+
+            Map<String, Object> response = authService.completeAdminProfile(request, savedUrl);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
         }
-
-        // 2) If valid -> generate & send OTP
-        generateAndSendOtp();
-        return ResponseEntity.ok(Map.of("message", "OTP sent to admin email"));
     }
-
-    // ===================== STEP 2: VERIFY OTP =====================
 
     /**
-     * Called from SECOND screen (5-digit OTP).
-     * Example: POST /api/admin/verify-otp?otp=12345
+     * GET /admin/pending-users
+     * Get all pending users (requires ADMIN role)
      */
-    @PostMapping("/verify-otp")
-    @Transactional
-    public ResponseEntity<?> verifyOtp(@RequestParam String otp) {
-
-        AdminOtp adminOtp = adminOtpRepository
-                .findTopByOtpCodeAndUsedIsFalseOrderByCreatedAtDesc(otp)
-                .orElse(null);
-
-        if (adminOtp == null) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Invalid or already used OTP"));
+    @GetMapping("/pending-users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> getPendingUsers() {
+        try {
+            List<Map<String, Object>> users = adminService.getPendingUsers();
+            return ResponseEntity.ok(users);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
         }
-
-        // mark as used
-        adminOtp.setUsed(true);
-        adminOtpRepository.save(adminOtp);
-
-        // issue JWT for admin
-        String token = jwtService.generateToken(adminEmail, "ADMIN");
-
-        return ResponseEntity.ok(
-                Map.of(
-                        "message", "Admin login successful",
-                        "token", token,
-                        "role", "ADMIN"));
     }
 
-    // ===================== (OPTIONAL) RAW SEND-OTP =====================
-    // You can still keep this for Postman testing if you want,
-    // but your frontend should call /login first, not this directly.
-
-    @PostMapping("/send-otp")
-    @Transactional
-    public ResponseEntity<?> sendOtpDirect() {
-        generateAndSendOtp();
-        return ResponseEntity.ok(Map.of("message", "OTP sent to admin email"));
+    /**
+     * POST /admin/users/{id}/approve
+     * Approve a user (requires ADMIN role)
+     */
+    @PostMapping("/users/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> approveUser(@PathVariable Long id) {
+        try {
+            Map<String, Object> response = adminService.approveUser(id);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 
-    // ===================== HELPER =====================
-
-    private void generateAndSendOtp() {
-
-        // create random 5-digit code
-        Random random = new Random();
-        int code = 10000 + random.nextInt(90000);
-        String otpCode = String.valueOf(code);
-
-        // save OTP in DB
-        AdminOtp otp = new AdminOtp();
-        otp.setOtpCode(otpCode);
-        otp.setCreatedAt(LocalDateTime.now());
-        otp.setUsed(false);
-        adminOtpRepository.save(otp);
-
-        // email it
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo("chmounyasri@gmail.com");
-        message.setSubject("Your MediBook Admin OTP");
-        message.setText("Your 5-digit admin OTP is: " + otpCode);
-        mailSender.send(message);
+    /**
+     * POST /admin/users/{id}/reject
+     * Reject a user (requires ADMIN role)
+     */
+    @PostMapping("/users/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> rejectUser(@PathVariable Long id) {
+        try {
+            Map<String, Object> response = adminService.rejectUser(id);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 }

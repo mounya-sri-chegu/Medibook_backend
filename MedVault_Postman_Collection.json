@@ -1,0 +1,592 @@
+{
+    "info": {
+        "_postman_id": "medvault-collection-final",
+        "name": "MedVault API Collection - Final",
+        "description": "Complete API collection for MedVault backend including Admin Verification Flow. All endpoints use /api prefix.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "1. Generate OTP (Patient)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"role\": \"PATIENT\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/generate-otp",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "generate-otp"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "1. Generate OTP (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Dr. Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"role\": \"DOCTOR\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/generate-otp",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "generate-otp"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Verify OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": 1,\n  \"role\": \"PATIENT\",\n  \"otp\": \"123456\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/verify-otp",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "verify-otp"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Register Admin Direct",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fullName\": \"New Admin\",\n  \"email\": \"admin.new@medvault.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/register-admin",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register-admin"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@medvault.com\",\n  \"password\": \"Admin@123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Profile Completion",
+            "item": [
+                {
+                    "name": "Complete Patient Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "userId",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "NewPassword123!",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "dateOfBirth",
+                                    "value": "1990-01-01",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gender",
+                                    "value": "Male",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "bloodGroup",
+                                    "value": "O+",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "phone",
+                                    "value": "9876543210",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "address",
+                                    "value": "123 St",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "city",
+                                    "value": "New York",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "state",
+                                    "value": "NY",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "country",
+                                    "value": "USA",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pincode",
+                                    "value": "10001",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "idProof",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/profile/patient",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profile",
+                                "patient"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Complete Doctor Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "userId",
+                                    "value": "2",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "ValidPass123!",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "dateOfBirth",
+                                    "value": "1980-05-20",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gender",
+                                    "value": "Female",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "medicalRegistrationNumber",
+                                    "value": "MED123",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "licensingAuthority",
+                                    "value": "Medical Board",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "specialization",
+                                    "value": "Cardiology",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "qualification",
+                                    "value": "MBBS, MD",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "experience",
+                                    "value": "10",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "phone",
+                                    "value": "9988776655",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "clinicHospitalName",
+                                    "value": "City Hospital",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "city",
+                                    "value": "Boston",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "state",
+                                    "value": "MA",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "country",
+                                    "value": "USA",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pincode",
+                                    "value": "02115",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "medicalLicense",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "degreeCertificates",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "profilePhoto",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/profile/doctor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "profile",
+                                "doctor"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Complete Admin Profile (Legacy)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "userId",
+                                    "value": "3",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "SecureAdmin123!",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "phone",
+                                    "value": "1231231234",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "designation",
+                                    "value": "Manager",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "department",
+                                    "value": "IT",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "certificate",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "profile"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin Operations",
+            "item": [
+                {
+                    "name": "Get Pending Users (General)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/pending-users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "pending-users"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Approve User (General)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/users/1/approve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "1",
+                                "approve"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reject User (General)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/users/1/reject",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "1",
+                                "reject"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin Verification Flow",
+            "item": [
+                {
+                    "name": "Get Pending Admins Listing",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/role-verification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "role-verification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Approve Admin (Latest Admin Only)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/role-verification/2/approve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "role-verification",
+                                "2",
+                                "approve"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Deny Admin (Latest Admin Only)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/role-verification/2/deny",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "role-verification",
+                                "2",
+                                "deny"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

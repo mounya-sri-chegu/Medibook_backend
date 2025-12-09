@@ -1,80 +1,65 @@
-package com.medibook.medibook_backend.entity;
+package com.medibook.medibook_backend.dto;
 
-import jakarta.persistence.*;
-import org.springframework.data.domain.Persistable;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "patient")
-public class Patient implements Persistable<Long> {
+public class CompletePatientProfileRequest {
 
-    @Id
-    private Long id; // Same as user.id (one-to-one FK)
+    @NotNull(message = "User ID is required")
+    private Long userId;
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "id")
-    private User user;
+    @NotBlank(message = "Password is required")
+    private String password;
 
-    // Personal Information
-    @Column(name = "date_of_birth")
+    @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
+    @NotBlank(message = "Gender is required")
     private String gender;
 
-    @Column(name = "blood_group")
+    @NotBlank(message = "Blood group is required")
     private String bloodGroup;
 
-    // Contact Information
+    @NotBlank(message = "Phone number is required")
     private String phone;
 
-    // Address Information
+    @NotBlank(message = "Address is required")
     private String address;
 
+    @NotBlank(message = "City is required")
     private String city;
 
+    @NotBlank(message = "State is required")
     private String state;
 
+    @NotBlank(message = "Country is required")
     private String country;
 
+    @NotBlank(message = "Pincode is required")
     private String pincode;
 
-    // Document Upload
-    @Column(name = "id_proof_path")
-    private String idProofPath; // Aadhar/Passport document path
-
-    // Registration Date (auto-set on profile completion)
-    @Column(name = "registration_date")
-    private LocalDateTime registrationDate;
+    private String idProofPath; // Set after file upload
 
     // Constructors
-    public Patient() {
-    }
-
-    public Patient(User user) {
-        this.user = user;
-        this.id = user.getId();
+    public CompletePatientProfileRequest() {
     }
 
     // Getters and Setters
-    public Long getId() {
-        return id;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public User getUser() {
-        return user;
+    public String getPassword() {
+        return password;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-        if (user != null) {
-            this.id = user.getId();
-        }
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public LocalDate getDateOfBirth() {
@@ -155,28 +140,5 @@ public class Patient implements Persistable<Long> {
 
     public void setIdProofPath(String idProofPath) {
         this.idProofPath = idProofPath;
-    }
-
-    public LocalDateTime getRegistrationDate() {
-        return registrationDate;
-    }
-
-    public void setRegistrationDate(LocalDateTime registrationDate) {
-        this.registrationDate = registrationDate;
-    }
-
-    @Transient
-    private boolean isNew = true;
-
-    // Persistable interface methods
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @PostLoad
-    @PostPersist
-    void markNotNew() {
-        this.isNew = false;
     }
 }

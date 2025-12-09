@@ -1,10 +1,18 @@
-
 package com.medibook.medibook_backend.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 public class LoginRequest {
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
     private String email;
+
+    @NotBlank(message = "Password is required")
     private String password;
 
+    // Constructors
     public LoginRequest() {
     }
 
@@ -13,8 +21,9 @@ public class LoginRequest {
         this.password = password;
     }
 
+    // Getters and Setters
     public String getEmail() {
-        return this.email;
+        return email;
     }
 
     public void setEmail(String email) {
@@ -22,7 +31,7 @@ public class LoginRequest {
     }
 
     public String getPassword() {
-        return this.password;
+        return password;
     }
 
     public void setPassword(String password) {
